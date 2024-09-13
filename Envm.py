@@ -1,24 +1,27 @@
 import numpy as np
 import math
-from Question import MultiObjectiveOptimization
+from Question import CTP1
 
 class Env():
-    def __init__(self,actions,fresh_time=0.3,popular_size=100,precision=5):
+    def __init__(self,actions,xN,fresh_time=0.3,popular_size=100,precision=5):
         self.FRESH_TIME = fresh_time
         self.pop = popular_size
         
-        self.func = MultiObjectiveOptimization()
-        self.xp = [5,5]
-        self.xd = [-5,-5]
+        self.func = CTP1(n=xN)
+        self.xp = np.ones(xN)
+        self.xd = np.zeros(xN)
         self.dim = len(self.xp)
+        
+        
         
         self.F = np.round(np.random.uniform(size=self.pop),precision)
         self.CR = np.round(np.random.uniform(size=self.pop),precision)
         
         self.X = np.zeros((self.pop,self.dim))
+        #self.fitness = np.zeros((self.pop,self.dim))
         for j in range(self.pop):
             for i in range(self.dim):
-                self.X[j][i] = round(self.xd[i] + (self.xp[i] - self.xd[i]) * np.random.uniform(),precision) 
+                self.X[j][i] = round(self.xd[i] + (self.xp[i] - self.xd[i]) * np.random.uniform(),precision)
         self.actions = actions
         self.result = []
         
@@ -26,7 +29,8 @@ class Env():
         self.pltx = []       
         self.elitesN = math.floor(self.pop)
         
-
+        self.pwrong = 0.3    
+        
     def obj_fun(self,x):
         return np.sum(self.base_obj_fun(x))
         
@@ -34,9 +38,28 @@ class Env():
         return self.base_obj_fun([x1,x2])
     
     def base_obj_fun(self,x):
-        f1 = x[0]**4 - 10 * x[0] ** 2 + x[0] * x[1] + x[1] ** 4 - x[0]**2 * x[1] ** 2
-        f2 = x[1]**4 - x[0]**2 * x[1] ** 2 + x[0] ** 4 + x[0] * x[1]
+        f1 = self.func.f1(x)
+        f2 = self.func.f2(x)
         return f1,f2
+    
+    def constrain_fun(self,x):
+        if ~self.func.constraints(x) and np.random.uniform() > self.pwrong:
+            return self.random_reset(x)
+        else:
+            return x
+        
+    def random_reset(self,x):
+        x_new = np.copy(x)
+        lower_bound = self.xd
+        upper_bound = self.xp
+        
+        for i in range(len(x_new)):
+            if x_new[i] < lower_bound[i] or x_new[i] > upper_bound[i]:
+                x_new[i] = np.random.uniform(lower_bound[i], upper_bound[i])
+        return x_new
+        
+    
+    
     
     def get_env_feedback(self,i,action):
             self.F[i] += action[0]
@@ -59,6 +82,9 @@ class Env():
                         trial[j] = self.xp[j]
                     if trial[j] < self.xd[j]:
                         trial[j] = self.xd[j]
+            
+            trial = self.constrain_fun(trial)
+            
             yield trial
         # # 随机选取两个变量进行突变
         # k = np.random.randint(0,self.pop,2)
@@ -95,6 +121,7 @@ class Env():
         fitness = []
         self.pltx.clear()
         #print(XV)
+        #XV = np.array(XV)
         N = len(XV)
         #print(N)
         for i in range(N):
