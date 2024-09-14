@@ -29,7 +29,7 @@ class Env():
         self.pltx = []       
         self.elitesN = math.floor(self.pop)
         
-        self.pwrong = 0.3    
+        #self.pwrong = 0.3    
         
     def obj_fun(self,x):
         return np.sum(self.base_obj_fun(x))
@@ -42,9 +42,18 @@ class Env():
         f2 = self.func.f2(x)
         return f1,f2
     
-    def constrain_fun(self,x):
-        if ~self.func.constraints(x) and np.random.uniform() > self.pwrong:
-            return self.random_reset(x)
+    def constrain_fun(self,x,origin):
+        #print("constrain_fun")
+        if self.func.constraints(x) == False:
+            #print("o",origin,'x0',x)
+            for i in range(3):
+                x=(x+origin)/2
+                #print("x",x)
+                if self.func.constraints(x) == True:
+                    return x
+            if self.func.constraints(x) == False:
+                return self.random_reset(x)
+            return x
         else:
             return x
         
@@ -54,8 +63,7 @@ class Env():
         upper_bound = self.xp
         
         for i in range(len(x_new)):
-            if x_new[i] < lower_bound[i] or x_new[i] > upper_bound[i]:
-                x_new[i] = np.random.uniform(lower_bound[i], upper_bound[i])
+            x_new[i] = np.random.uniform(lower_bound[i], upper_bound[i])
         return x_new
         
     
@@ -83,7 +91,7 @@ class Env():
                     if trial[j] < self.xd[j]:
                         trial[j] = self.xd[j]
             
-            trial = self.constrain_fun(trial)
+            trial = self.constrain_fun(trial,self.X[i])
             
             yield trial
         # # 随机选取两个变量进行突变

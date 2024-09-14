@@ -56,4 +56,18 @@ class CTP1:
             constraint_value = f2_value - a * np.exp(-b * f1_value)
             constraints_satisfied.append(constraint_value >= 0)
         return np.array(constraints_satisfied).all()
+    
+    def constraints_func(self, x):
+        """
+        计算约束条件，返回布尔值表示是否满足约束
+        :param x: 设计变量向量
+        :return: 布尔数组，表示各个约束是否满足
+        """
+        f1_value = x[0]
+        f2_value = x[1]
+        constraints_satisfied = []
+        for a, b in zip(self.a_j, self.b_j):
+            constraint_value = f2_value - a * np.exp(-b * f1_value)
+            constraints_satisfied.append(constraint_value >= 0)
+        return np.array(constraints_satisfied).all()
 
