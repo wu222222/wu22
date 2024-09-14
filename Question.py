@@ -7,35 +7,53 @@ function!
 """
 import numpy as np
 
-class MultiObjectiveOptimization:
-    def __init__(self, x1_max=10, x2_max=10):
+class CTP1:
+    def __init__(self, n):
         """
-        初始化 MultiObjectiveOptimization 类的实例，设置默认参数值。
-
-        参数:
-        x1_max (float): 自变量 x1 的最大限制。默认值为 10。
-        x2_max (float): 自变量 x2 的最大限制。默认值为 10。
+        初始化 CTP1 问题的参数
+        :param n: 设计变量的数量
         """
-        self.x1_max = x1_max
-        self.x2_max = x2_max
+        self.n = n
+        self.a_j = [0.858, 0.728]  # 第一个和第二个约束的 a_j 参数
+        self.b_j = [0.541, 0.295]  # 第一个和第二个约束的 b_j 参数
 
-    def objective1(self, x):
-        """目标函数1：最大化总收益"""
-        x1, x2 = x
-        return -(x1 + x2)  # 负号因为要最大化
+    def f1(self, x):
+        """
+        计算第一个目标函数 f1
+        :param x: 设计变量向量
+        :return: f1 的值
+        """
+        return x[0]
 
-    def objective2(self, x):
-        """目标函数2：最小化总成本"""
-        x1, x2 = x
-        return 2 * x1**2 + 3 * x2**2 + x1 + x2
+    def g(self, x):
+        """
+        计算辅助函数 g
+        :param x: 设计变量向量
+        :return: g 的值
+        """
+        x = np.array(x)
+        return 1 + 100 * np.sum((x[1:] - 0.5)**2)
 
-    def constraint1(self, x):
-        """约束条件1：非线性资源限制，返回布尔值"""
-        x1, x2 = x
-        return (x1 - 2)**2 + (x2 - 2)**2 <= 16  # 检查是否满足圆形区域限制
+    def f2(self, x):
+        """
+        计算第二个目标函数 f2
+        :param x: 设计变量向量
+        :return: f2 的值
+        """
+        g_value = self.g(x)
+        return g_value * np.exp(-self.f1(x) / g_value)
 
-    def constraint2(self, x):
-        """约束条件2：非负性，返回布尔值"""
-        x1, x2 = x
-        return x1 >= 0 and x2 >= 0  # 检查 x1 和 x2 是否为非负值
+    def constraints(self, x):
+        """
+        计算约束条件，返回布尔值表示是否满足约束
+        :param x: 设计变量向量
+        :return: 布尔数组，表示各个约束是否满足
+        """
+        f1_value = self.f1(x)
+        f2_value = self.f2(x)
+        constraints_satisfied = []
+        for a, b in zip(self.a_j, self.b_j):
+            constraint_value = f2_value - a * np.exp(-b * f1_value)
+            constraints_satisfied.append(constraint_value >= 0)
+        return np.array(constraints_satisfied).all()
 
